@@ -18,3 +18,4 @@ pnpm-debug.log*
 *.log
 artifacts
 captures
+REPORT.md
