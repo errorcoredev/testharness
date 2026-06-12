@@ -1,0 +1,165 @@
+name: errorcore-pipeline
+
+networks:
+  ec-pipeline:
+    name: ec-pipeline
+
+volumes:
+  pg-data:
+  minio-data:
+  backend-node-modules:
+
+x-backend-env: &backend-env
+  DATABASE_URL: postgres://postgres:postgres@postgres:5432/errorcore_ingest
+  S3_ENDPOINT: http://minio:9000
+  S3_REGION: us-east-1
+  S3_BUCKET: errorcore-pipeline
+  S3_ACCESS_KEY_ID: minioadmin
+  S3_SECRET_ACCESS_KEY: minioadmin
+  CLERK_SECRET_KEY: sk_test_pipeline_placeholder
+  CLERK_PUBLISHABLE_KEY: pk_test_cGlwZWxpbmUuY2xlcmsuYWNjb3VudHMuZGV2JA
+  CLERK_WEBHOOK_SIGNING_SECRET: whsec_pipeline_placeholder
+  POLAR_ACCESS_TOKEN: polar_at_pipeline_placeholder
+  POLAR_WEBHOOK_SECRET: whsec_pipeline_placeholder
+  KEY_ENCRYPTION_SECRET: pipeline-master-secret-at-least-32-bytes!!
+  SUPPORTED_SDK_VERSIONS: "0.2.0"
+  MAX_INGEST_BYTES: "1048576"
+  TENANT_RATE_LIMIT_PER_MINUTE: "10000"
+  WORKER_BATCH_SIZE: "25"
+  WORKER_POLL_MS: "500"
+  USAGE_FLUSH_MS: "86400000"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: "no"
+    environment:
+      POSTGRES_DB: errorcore_ingest
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d errorcore_ingest"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+    ports:
+      - "55432:5432"
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    networks:
+      - ec-pipeline
+
+  minio:
+    image: minio/minio:latest
+    restart: "no"
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    networks:
+      - ec-pipeline
+
+  createbucket:
+    image: minio/mc:latest
+    restart: "no"
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        mc alias set local http://minio:9000 minioadmin minioadmin
+        mc mb --ignore-existing local/errorcore-pipeline
+        mc anonymous set none local/errorcore-pipeline
+    networks:
+      - ec-pipeline
+
+  api:
+    image: node:22-bookworm
+    restart: "no"
+    working_dir: /workspace/ingestion-backend
+    command:
+      - /bin/sh
+      - -c
+      - npm ci && npm run migrate && node dist/src/server.js
+    environment:
+      <<: *backend-env
+      HOST: 0.0.0.0
+      PORT: "4318"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      createbucket:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4318/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+        ]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+    ports:
+      - "4318:4318"
+    volumes:
+      - ..:/workspace
+      - backend-node-modules:/workspace/ingestion-backend/node_modules
+      - ./captures:/captures
+    networks:
+      - ec-pipeline
+
+  worker:
+    image: node:22-bookworm
+    restart: "no"
+    working_dir: /workspace/ingestion-backend
+    command:
+      - /bin/sh
+      - -c
+      - npm ci && node dist/src/worker.js
+    environment:
+      <<: *backend-env
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - ..:/workspace
+      - backend-node-modules:/workspace/ingestion-backend/node_modules
+      - ./captures:/captures
+    networks:
+      - ec-pipeline
+
+  forwarder:
+    image: node:22-bookworm
+    restart: "no"
+    working_dir: /workspace
+    command:
+      - /bin/sh
+      - -c
+      - node harness-pipeline/forwarder.mjs --follow /captures
+    environment:
+      EC_API_KEY: ec_live_pipeline_20260604_deadbeef
+      EC_PROJECT_ID: pipeline-project
+      EC_INGEST_URL: http://api:4318/v1/ingest
+      EC_FORWARDER_STATUS_PATH: /workspace/harness-pipeline/artifacts/forwarder/status.ndjson
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - ..:/workspace
+      - ./captures:/captures
+    networks:
+      - ec-pipeline

@@ -1,0 +1,92 @@
+{
+  "generatedAt": "2026-06-04T00:00:00.000Z",
+  "coverageNote": "These are deterministic harness driver/runtime targets captured through the real Errorcore SDK preload, encrypted file transport, forwarder, API, worker, storage, snapshot, and projection path. They are not git-sourced OSS regression targets; that acceptance item remains a validation gap recorded in REPORT.md.",
+  "trigger": {
+    "workingDirectory": "ingestion-backend",
+    "command": "NODE_OPTIONS=\"--require C:\\Users\\harin\\Downloads\\errorcore\\harness-pipeline\\instrument\\errorcore-preload.js\" EC_CAPTURE_PATH=\"C:\\Users\\harin\\Downloads\\errorcore\\harness-pipeline\\captures\\driver-targets.ndjson\" EC_DEK=\"pipeline-data-encryption-key-32-bytes-minimum-20260604\" EC_SERVICE=\"driver-targets\" ERRORCORE_ENVIRONMENT=\"pipeline-validation\" EC_PRELOAD_DEBUG=\"true\" EC_PRELOAD_SERVERLESS=\"true\" node ..\\harness-pipeline\\artifacts\\target-runners\\driver-targets.mjs",
+    "runner": "harness-pipeline/artifacts/target-runners/driver-targets.mjs",
+    "captureFile": "harness-pipeline/captures/driver-targets.ndjson"
+  },
+  "targets": [
+    {
+      "id": "http-framework-crash",
+      "eventId": "f1862f42-ba7b-4f31-94cf-e1a6d3f0cd17",
+      "repoUrl": "local:harness-pipeline/artifacts/target-runners/driver-targets.mjs",
+      "fixSha": null,
+      "parentSha": null,
+      "category": "HTTP framework crash",
+      "s0Evidence": "Local HTTP route returns 500 and then throws TARGET_HTTP_FRAMEWORK: route handler crashed from an async server callback.",
+      "expectedDimensions": ["D1", "D2", "D3", "D5", "D9", "D10", "D11"]
+    },
+    {
+      "id": "db-connection-failure",
+      "eventId": "c679a8aa-a783-491c-bc14-21b7a5370c6d",
+      "repoUrl": "local:harness-pipeline/artifacts/target-runners/driver-targets.mjs",
+      "fixSha": null,
+      "parentSha": null,
+      "category": "DB failure",
+      "s0Evidence": "pg Client attempts postgres://pipeline:pipeline@127.0.0.1:1/missing and fails with connect ECONNREFUSED 127.0.0.1:1.",
+      "expectedDimensions": ["D1", "D2", "D5", "D6", "D10", "D11"]
+    },
+    {
+      "id": "async-unhandled-rejection",
+      "eventId": "efb89d4f-282a-4371-8173-dabc34ecfe77",
+      "repoUrl": "local:harness-pipeline/artifacts/target-runners/driver-targets.mjs",
+      "fixSha": null,
+      "parentSha": null,
+      "category": "Async/unhandled rejection",
+      "s0Evidence": "Delayed promise path throws TARGET_ASYNC_REJECTION: queued job failed without a local catch.",
+      "expectedDimensions": ["D1", "D2", "D10", "D11"]
+    },
+    {
+      "id": "outbound-fetch-failure",
+      "eventId": "10f19d47-5b24-4166-87be-4016b8f3c7a0",
+      "repoUrl": "local:harness-pipeline/artifacts/target-runners/driver-targets.mjs",
+      "fixSha": null,
+      "parentSha": null,
+      "category": "Outbound HTTP/fetch",
+      "s0Evidence": "fetch POST to http://127.0.0.1:1/payment-provider fails with TypeError: fetch failed.",
+      "expectedDimensions": ["D1", "D2", "D5", "D10", "D11"]
+    },
+    {
+      "id": "state-read-write",
+      "eventId": "aaf6fc9a-5df0-4e71-8015-d8547f389824",
+      "repoUrl": "local:harness-pipeline/artifacts/target-runners/driver-targets.mjs",
+      "fixSha": null,
+      "parentSha": null,
+      "category": "State read/write",
+      "s0Evidence": "errorcore.trackState('cart-cache', new Map()) records set/get activity before TARGET_STATE_RW: state transition invalid.",
+      "expectedDimensions": ["D1", "D2", "D7", "D10", "D11"]
+    },
+    {
+      "id": "pii-bearing-request",
+      "eventId": "d4328e1a-1eba-4a64-b761-c795b712cda9",
+      "repoUrl": "local:harness-pipeline/artifacts/target-runners/driver-targets.mjs",
+      "fixSha": null,
+      "parentSha": null,
+      "category": "PII-bearing request",
+      "s0Evidence": "Local checkout endpoint receives JSON containing email, password, and card fields, responds 500, then throws TARGET_PII_REQUEST: checkout payload rejected.",
+      "expectedDimensions": ["D1", "D2", "D3", "D4", "D5", "D9", "D10", "D11"]
+    },
+    {
+      "id": "source-process-metadata",
+      "eventId": "07e0f39a-697d-4089-a1f9-e95a949e9800",
+      "repoUrl": "local:harness-pipeline/artifacts/target-runners/driver-targets.mjs",
+      "fixSha": null,
+      "parentSha": null,
+      "category": "Source-map/process metadata",
+      "s0Evidence": "Nested calculateInvoice function with local variables throws TARGET_SOURCE_PROCESS: invoice inv_123 failed.",
+      "expectedDimensions": ["D1", "D2", "D8", "D10", "D11"]
+    },
+    {
+      "id": "cross-service-trace-hop",
+      "eventId": "cba7d32e-2b6c-4b90-83a4-15f55a14a86b",
+      "repoUrl": "local:harness-pipeline/artifacts/target-runners/driver-targets.mjs",
+      "fixSha": null,
+      "parentSha": null,
+      "category": "Cross-service trace hop",
+      "s0Evidence": "Upstream HTTP request with traceparent/tracestate calls a downstream route that responds 502 and throws TARGET_TRACE_HOP: downstream service exploded.",
+      "expectedDimensions": ["D1", "D2", "D3", "D5", "D9", "D10", "D11"]
+    }
+  ]
+}
