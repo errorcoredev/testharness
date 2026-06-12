@@ -92,7 +92,7 @@ services:
     command:
       - /bin/sh
       - -c
-      - npm ci && npm run migrate && node dist/src/server.js
+      - npm ci && npm run build && npm run migrate && node dist/src/server.js
     environment:
       <<: *backend-env
       HOST: 0.0.0.0
@@ -129,7 +129,7 @@ services:
     command:
       - /bin/sh
       - -c
-      - npm ci && node dist/src/worker.js
+      - npm ci && npm run build && node dist/src/worker.js
     environment:
       <<: *backend-env
     depends_on:
